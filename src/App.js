@@ -1,11 +1,16 @@
-import logo from './logo.svg';
+import React, { useEffect } from 'react';
 import './App.css';
 
 function App() {
+  useEffect(async () => {
+    const response = await fetch('http://localhost:3001/cpu-average');
+    const average = await response.json();
+    console.log('average', average);
+  }, []);
+
   return (
     <div className="App">
       <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
         <p>
           Edit <code>src/App.js</code> and save to reload.
         </p>

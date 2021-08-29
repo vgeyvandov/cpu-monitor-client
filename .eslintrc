@@ -12,6 +12,7 @@
     "sourceType": "module"
   },
   "plugins": ["react"],
+  "ignorePatterns": ["/build"],
   "rules": {
     "semi": [2, "always"],
     "space-before-function-paren": ["off"],

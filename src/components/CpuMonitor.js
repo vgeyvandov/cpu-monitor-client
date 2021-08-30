@@ -1,13 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
-import update from 'immutability-helper';
 import { FETCH_INTERVAL, SPACE_UNIT } from '../constants';
 import {
+  getAverageOverTime,
   getData,
+  getGraphDurationInMinutes,
+  getLatestAverageResponse,
   getNewAverage,
   isAboveThreshold,
+  setAverageAlert,
+  shouldTriggerAlert,
   updateAverages
 } from '../dataUtils';
+import Header from './Header';
 import Graph from './Graph';
 import Log from './Log';
 
@@ -17,46 +22,27 @@ const MainContainer = styled.main`
   padding: 0 ${SPACE_UNIT * 8}px ${SPACE_UNIT * 4}px ${SPACE_UNIT * 8}px;
 `;
 
-const GraphHeader = styled.header`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-`;
-
-const CurrentAverage = styled.div`
-  padding: ${SPACE_UNIT * 4}px 0;
-`;
-
-const GraphDataTitle = styled.div`
-  padding: ${SPACE_UNIT * 2}px 0;
-  color: #6b6b6b;
-`;
-
-const CurrentAverageTotal = styled.div`
-  color: #000;
-`;
-
 export default function CpuMonitor() {
   const [cpuCount, setCpuCount] = useState(0);
   const [cpuAverages, setCpuAverages] = useState([getNewAverage()]);
   const [cpuLimitCount, setCpuLimitCount] = useState(0);
+  const [cpuRecoveryCount, setCpuRecoveryCount] = useState(0);
+  const [isCpuLimitAlertTriggered, setIsCpuLimitAlertTriggered] =
+    useState(false);
+  const latestAverage = getLatestAverageResponse(cpuAverages);
+  const graphDuration = getGraphDurationInMinutes(
+    latestAverage,
+    cpuAverages[0]
+  );
+  const averageOverTime = getAverageOverTime(cpuAverages);
 
-  // last average in array is usually zero while we wait for next response
-  const latestAverage =
-    cpuAverages.length === 1
-      ? cpuAverages[0]
-      : cpuAverages[cpuAverages.length - 2];
-  const graphDuration = latestAverage.createdAt
-    ? Math.ceil((latestAverage.createdAt - cpuAverages[0].createdAt) / 60000)
-    : 0;
-  // average of all readings, excluding the "waiting" value
-  const averageOverTime =
-    cpuAverages.reduce((acc, { value }) => acc + value, 0) /
-    (cpuAverages.length > 1 ? cpuAverages.length - 1 : cpuAverages.length);
+  useEffect(() => {
+    async function getCpuCount() {
+      const { value } = await getData('cpu-count');
+      setCpuCount(value);
+    }
 
-  useEffect(async () => {
-    const { value } = await getData('cpu-count');
-    setCpuCount(value);
+    getCpuCount();
   }, [setCpuCount]);
 
   useEffect(() => {
@@ -64,7 +50,7 @@ export default function CpuMonitor() {
 
     async function fetchAverage() {
       const average = await getData('cpu-average');
-      setCpuAverages((averages) => updateAverages(averages, average));
+      setCpuAverages(averages => updateAverages(averages, average));
     }
 
     if (cpuCount > 0) {
@@ -77,47 +63,47 @@ export default function CpuMonitor() {
   }, [cpuCount]);
 
   useEffect(() => {
-    if (isAboveThreshold(latestAverage.value)) {
-      setCpuLimitCount((count) => count + 1);
-      console.log('isAboveThreshold', true);
+    if (isAboveThreshold(latestAverage.value, isCpuLimitAlertTriggered)) {
+      setCpuLimitCount(count => count + 1);
+      setCpuRecoveryCount(0);
+    } else if (isCpuLimitAlertTriggered) {
+      setCpuRecoveryCount(count => count + 1);
+      setCpuLimitCount(0);
     }
-  }, [latestAverage]);
+  }, [latestAverage, isCpuLimitAlertTriggered]);
 
   useEffect(() => {
-    // 2 minutes is 120 seconds, 12 bars on the graph
-    if (cpuLimitCount >= 12) {
-      setCpuAverages((averages) =>
-        update(averages, {
-          [averages.length - 1]: { limitReached: { $set: true } }
-        })
-      );
+    if (shouldTriggerAlert(cpuLimitCount)) {
+      setCpuAverages(setAverageAlert);
+      setCpuLimitCount(0);
+      setIsCpuLimitAlertTriggered(true);
     }
   }, [cpuLimitCount]);
 
+  useEffect(() => {
+    if (shouldTriggerAlert(cpuRecoveryCount)) {
+      setCpuAverages(averages =>
+        setAverageAlert(averages, { isRecovery: true })
+      );
+      setCpuRecoveryCount(0);
+      setIsCpuLimitAlertTriggered(false);
+    }
+  }, [cpuRecoveryCount]);
+
   return (
     <MainContainer>
-      <GraphHeader>
-        <CurrentAverage>
-          <GraphDataTitle>
-            Latest average CPU load ({cpuCount} cores)
-          </GraphDataTitle>
-          <CurrentAverageTotal>
-            {latestAverage.value || '--'}
-          </CurrentAverageTotal>
-        </CurrentAverage>
-        <CurrentAverage>
-          <GraphDataTitle>Last {graphDuration} minute average</GraphDataTitle>
-          <CurrentAverageTotal>{averageOverTime || '--'}</CurrentAverageTotal>
-        </CurrentAverage>
-      </GraphHeader>
-
+      <Header
+        averageOverTime={averageOverTime}
+        cpuCount={cpuCount}
+        graphDuration={graphDuration}
+        latestAverage={latestAverage}
+      />
       <Graph
         cpuAverages={cpuAverages}
         cpuCount={cpuCount}
         latestAverage={latestAverage}
       />
-
-      <Log cpuAverages={cpuAverages} />
+      <Log latestAverage={latestAverage} />
     </MainContainer>
   );
 }

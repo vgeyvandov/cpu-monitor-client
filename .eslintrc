@@ -3,7 +3,7 @@
     "browser": true,
     "es2021": true
   },
-  "extends": ["plugin:react/recommended", "standard"],
+  "extends": ["plugin:react/recommended", "plugin:react-hooks/recommended", "standard"],
   "parserOptions": {
     "ecmaFeatures": {
       "jsx": true
@@ -14,6 +14,7 @@
   "plugins": ["react"],
   "ignorePatterns": ["/build"],
   "rules": {
+    "arrow-parens": ["error", "as-needed"],
     "semi": [2, "always"],
     "space-before-function-paren": ["off"],
     "no-unused-vars": ["warn", {

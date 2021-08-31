@@ -1,10 +1,6 @@
-import styled, { css, keyframes } from 'styled-components';
-import {
-  BORDER_LINE_COLOR,
-  HEALTH_COLOR,
-  LIMIT_COLOR,
-  SPACE_UNIT
-} from '../constants';
+import styled, { css } from 'styled-components';
+import { COLORS, SPACE_UNIT } from '../constants';
+import { healthyAnimation, warningAnimation } from '../animations';
 
 export const GraphContainer = styled.div`
   height: 400px;
@@ -16,7 +12,7 @@ export const GraphContainer = styled.div`
 export const GraphOutline = styled.div`
   height: calc(100% - ${SPACE_UNIT * 8}px);
   width: 100%;
-  border: 1px solid ${BORDER_LINE_COLOR};
+  border: 1px solid ${COLORS.LIGHT_GRAY};
   position: absolute;
   border-radius: 4px;
 `;
@@ -24,11 +20,12 @@ export const GraphOutline = styled.div`
 export const GraphHorizontalMark = styled.hr`
   height: 1px;
   border-width: 0;
-  color: ${BORDER_LINE_COLOR};
+  color: ${COLORS.LIGHT_GRAY};
   background-color: ${props =>
-    props.isThresholdLine ? 'rgba(255, 69, 69, 0.2)' : `${BORDER_LINE_COLOR}`};
+    props.isThresholdLine ? 'rgba(255, 69, 69, 0.4)' : `${COLORS.LIGHT_GRAY}`};
   position: absolute;
-  top: ${props => props.top}%;
+  ${props => props.top && `top: ${props.top}%;`}
+  ${props => props.bottom && `bottom: ${props.bottom}%;`}
   width: 100%;
   margin: 0;
 `;
@@ -36,14 +33,14 @@ export const GraphHorizontalMark = styled.hr`
 export const GraphVerticalMark = styled.div`
   position: absolute;
   left: ${props => props.left}%;
-  border-left: 1px dashed ${BORDER_LINE_COLOR};
+  border-left: 1px dashed ${COLORS.LIGHT_GRAY};
   height: 100%;
 `;
 
 export const MinMark = styled.div`
   position: absolute;
   font-size: 12px;
-  color: #6b6b6b;
+  color: ${COLORS.GRAY};
 
   ${props =>
     props.axis === 'x'
@@ -62,13 +59,14 @@ export const MidMark = styled.div`
   font-size: 12px;
   top: 48%;
   right: -${SPACE_UNIT * 4}px;
-  color: #6b6b6b;
+  color: ${COLORS.GRAY};
+  background-color: ${COLORS.WHITE};
 `;
 
 export const MaxMark = styled.div`
   position: absolute;
   font-size: 12px;
-  color: #6b6b6b;
+  color: ${COLORS.GRAY};
 
   ${props =>
     props.axis === 'x'
@@ -77,8 +75,10 @@ export const MaxMark = styled.div`
           right: 0;
         `
       : css`
-          top: -${SPACE_UNIT * 2}px;
-          right: -${SPACE_UNIT * 4}px;
+          top: -${SPACE_UNIT * 3}px;
+          right: -${SPACE_UNIT * 5}px;
+          padding: ${SPACE_UNIT}px;
+          background-color: ${COLORS.WHITE};
         `}
 `;
 
@@ -101,42 +101,18 @@ export const Bar = styled.div.attrs(props => ({
   align-items: center;
   width: calc(100% / 120);
   margin: 0 2px;
-  background-color: white;
+  background-color: ${COLORS.WHITE};
   position: absolute;
   bottom: 0;
   left: 0;
   transition: height 0.5s ease-out;
 `;
 
-export const warningAnimation = keyframes`
-  0% {
-    box-shadow: 0 0 0 0 rgba(255, 69, 69, 0.4);
-  }
-  70% {
-    box-shadow: 0 0 0 10px rgba(255, 69, 69, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(255, 69, 69, 0);
-  }
-`;
-
-export const healthyAnimation = keyframes`
-  0% {
-    box-shadow: 0 0 0 0 rgba(99, 228, 99, 0.4);
-  }
-  70% {
-    box-shadow: 0 0 0 10px rgba(99, 228, 99, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(99, 228, 99, 0);
-  }
-`;
-
 export const Fill = styled.div`
   height: 100%;
   width: 70%;
   background-color: ${props =>
-    props.isOverThreshold ? LIMIT_COLOR : HEALTH_COLOR};
+    props.isOverThreshold ? COLORS.RED : COLORS.GREEN};
   border-top-right-radius: 2px;
   border-top-left-radius: 2px;
 
@@ -147,7 +123,7 @@ export const Fill = styled.div`
           min-height: 4px;
           border-radius: 50%;
           background-color: ${props =>
-            props.isHealthy ? HEALTH_COLOR : LIMIT_COLOR};
+            props.isHealthy ? COLORS.GREEN : COLORS.RED};
           animation: ${props.isHealthy ? healthyAnimation : warningAnimation} 1s
             infinite;
         `
@@ -155,13 +131,18 @@ export const Fill = styled.div`
 `;
 
 export const Alert = styled.div`
-  display: ${props =>
-    props.limitCleared || props.limitReached ? 'block' : 'none'};
   position: absolute;
-  top: -${SPACE_UNIT * 2}px;
-  right: 0;
-  height: 8px;
-  width: 8px;
-  background-color: ${props =>
-    props.limitReached ? LIMIT_COLOR : HEALTH_COLOR};
+  font-size: 12px;
+  top: -${SPACE_UNIT * 3}px;
+  cursor: default;
+  color: ${props => (props.limitReached ? COLORS.RED : COLORS.GREEN)};
+
+  @media only screen and (min-width: 620px) {
+    top: -${SPACE_UNIT * 6}px;
+    font-size: 24px;
+  }
+`;
+
+export const MaxInput = styled.input`
+  width: 36px;
 `;

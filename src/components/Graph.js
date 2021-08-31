@@ -1,12 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import PropTypes from 'prop-types';
-import { AVERAGE_SHAPE, GRAPH_MAX } from '../constants';
+import { AVERAGE_SHAPE } from '../constants';
 import { getBarTitle, isAboveThreshold } from '../dataUtils';
 import {
   GraphContainer,
   GraphOutline,
   GraphHorizontalMark,
   GraphVerticalMark,
+  MaxInput,
   MinMark,
   MidMark,
   MaxMark,
@@ -19,7 +20,8 @@ import {
 const TEN_MINUTES_IN_MS = 600000;
 
 function Graph({ cpuAverages, latestAverage }) {
-  const max = GRAPH_MAX;
+  const [max, setMax] = useState(2);
+
   const endDate =
     cpuAverages.length === 60
       ? new Date(latestAverage.createdAt).toLocaleString()
@@ -33,7 +35,10 @@ function Graph({ cpuAverages, latestAverage }) {
         <GraphHorizontalMark top="25" />
         <GraphHorizontalMark top="50" />
         <GraphHorizontalMark top="75" />
-        <GraphHorizontalMark isThresholdLine top="95" />
+        <GraphHorizontalMark
+          isThresholdLine
+          bottom={parseInt((1 / max) * 100)}
+        />
 
         <GraphVerticalMark left="25" />
         <GraphVerticalMark left="50" />
@@ -41,7 +46,13 @@ function Graph({ cpuAverages, latestAverage }) {
 
         <MinMark axis="y">0</MinMark>
         <MidMark>{max / 2}</MidMark>
-        <MaxMark axis="y">{max}</MaxMark>
+        <MaxMark axis="y">
+          <MaxInput
+            type="number"
+            value={max}
+            onChange={e => e.target.value > 1 && setMax(e.target.value)}
+          />
+        </MaxMark>
 
         <MinMark axis="x">{xMinMark}</MinMark>
         <MaxMark axis="x">{xMaxMark}</MaxMark>
@@ -51,6 +62,7 @@ function Graph({ cpuAverages, latestAverage }) {
         {cpuAverages.map(
           ({ id, value, createdAt, limitCleared, limitReached }, index) => {
             const isWaiting = value === 0;
+            const showAlert = !isWaiting && (limitCleared || limitReached);
             return (
               <Bar
                 key={id}
@@ -63,10 +75,19 @@ function Graph({ cpuAverages, latestAverage }) {
                   isOverThreshold={isAboveThreshold(value)}
                   isWaiting={isWaiting}
                 />
-                <Alert
-                  limitCleared={limitCleared}
-                  limitReached={limitReached}
-                />
+                {showAlert && (
+                  <Alert
+                    limitCleared={limitCleared}
+                    limitReached={limitReached}
+                    title={
+                      limitReached
+                        ? 'High average load exceeded for 2+ minutes'
+                        : 'High average load reduced for 2+ minutes'
+                    }
+                  >
+                    {limitReached ? '↑' : '↓'}
+                  </Alert>
+                )}
               </Bar>
             );
           }

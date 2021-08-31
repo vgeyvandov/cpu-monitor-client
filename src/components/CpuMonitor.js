@@ -1,15 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
 import { FETCH_INTERVAL, SPACE_UNIT } from '../constants';
 import {
+  checkForAlert,
   getAverageOverTime,
   getData,
-  getGraphDurationInMinutes,
   getLatestAverageResponse,
   getNewAverage,
-  isAboveThreshold,
   setAverageAlert,
-  shouldTriggerAlert,
   updateAverages
 } from '../dataUtils';
 import Header from './Header';
@@ -25,15 +23,11 @@ const MainContainer = styled.main`
 export default function CpuMonitor() {
   const [cpuCount, setCpuCount] = useState(0);
   const [cpuAverages, setCpuAverages] = useState([getNewAverage()]);
-  const [cpuLimitCount, setCpuLimitCount] = useState(0);
-  const [cpuRecoveryCount, setCpuRecoveryCount] = useState(0);
+  const cpuLimitCount = useRef(0);
+  const cpuRecoveryCount = useRef(0);
   const [isCpuLimitAlertTriggered, setIsCpuLimitAlertTriggered] =
     useState(false);
   const latestAverage = getLatestAverageResponse(cpuAverages);
-  const graphDuration = getGraphDurationInMinutes(
-    latestAverage,
-    cpuAverages[0]
-  );
   const averageOverTime = getAverageOverTime(cpuAverages);
 
   useEffect(() => {
@@ -63,39 +57,31 @@ export default function CpuMonitor() {
   }, [cpuCount]);
 
   useEffect(() => {
-    if (isAboveThreshold(latestAverage.value, isCpuLimitAlertTriggered)) {
-      setCpuLimitCount(count => count + 1);
-      setCpuRecoveryCount(0);
-    } else if (isCpuLimitAlertTriggered) {
-      setCpuRecoveryCount(count => count + 1);
-      setCpuLimitCount(0);
-    }
-  }, [latestAverage, isCpuLimitAlertTriggered]);
-
-  useEffect(() => {
-    if (shouldTriggerAlert(cpuLimitCount)) {
-      setCpuAverages(setAverageAlert);
-      setCpuLimitCount(0);
+    function triggerAlert() {
+      setCpuAverages(averages => setAverageAlert(averages, 'limitReached'));
       setIsCpuLimitAlertTriggered(true);
     }
-  }, [cpuLimitCount]);
 
-  useEffect(() => {
-    if (shouldTriggerAlert(cpuRecoveryCount)) {
-      setCpuAverages(averages =>
-        setAverageAlert(averages, { isRecovery: true })
-      );
-      setCpuRecoveryCount(0);
+    function triggerRecovery() {
+      setCpuAverages(averages => setAverageAlert(averages, 'limitCleared'));
       setIsCpuLimitAlertTriggered(false);
     }
-  }, [cpuRecoveryCount]);
+
+    checkForAlert(
+      latestAverage.value,
+      isCpuLimitAlertTriggered,
+      cpuLimitCount,
+      cpuRecoveryCount,
+      triggerAlert,
+      triggerRecovery
+    );
+  }, [latestAverage, isCpuLimitAlertTriggered]);
 
   return (
     <MainContainer>
       <Header
         averageOverTime={averageOverTime}
         cpuCount={cpuCount}
-        graphDuration={graphDuration}
         latestAverage={latestAverage}
       />
       <Graph

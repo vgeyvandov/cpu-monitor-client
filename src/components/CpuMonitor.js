@@ -2,14 +2,14 @@ import React, { useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
 import { FETCH_INTERVAL, SPACE_UNIT } from '../constants';
 import {
-  checkForAlert,
   getAverageOverTime,
   getData,
   getLatestAverageResponse,
   getNewAverage,
   setAverageAlert,
   updateAverages
-} from '../dataUtils';
+} from '../data-utils';
+import checkForAlert from '../alerts/check-alert';
 import Header from './Header';
 import Graph from './Graph';
 import Log from './Log';
@@ -57,13 +57,13 @@ export default function CpuMonitor() {
   }, [cpuCount]);
 
   useEffect(() => {
-    function triggerAlert() {
-      setCpuAverages(averages => setAverageAlert(averages, 'limitReached'));
+    function triggerWarning() {
+      setCpuAverages(averages => setAverageAlert(averages, 'warningAlert'));
       setIsCpuLimitAlertTriggered(true);
     }
 
     function triggerRecovery() {
-      setCpuAverages(averages => setAverageAlert(averages, 'limitCleared'));
+      setCpuAverages(averages => setAverageAlert(averages, 'recoveryAlert'));
       setIsCpuLimitAlertTriggered(false);
     }
 
@@ -72,7 +72,7 @@ export default function CpuMonitor() {
       isCpuLimitAlertTriggered,
       cpuLimitCount,
       cpuRecoveryCount,
-      triggerAlert,
+      triggerWarning,
       triggerRecovery
     );
   }, [latestAverage, isCpuLimitAlertTriggered]);

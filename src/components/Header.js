@@ -52,7 +52,7 @@ function Header({ averageOverTime, cpuCount, latestAverage }) {
       <GraphAverages>
         <CurrentAverage>
           <GraphDataTitle>
-            Latest average CPU load (1 of {cpuCount} cores)
+            Latest average CPU load ({cpuCount} cores)
           </GraphDataTitle>
           <CurrentAverageTotal>
             {new Date(latestAverage.createdAt).toLocaleString()}:{' '}

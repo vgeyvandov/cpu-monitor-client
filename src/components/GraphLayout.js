@@ -1,13 +1,7 @@
+import React from 'react';
+import PropTypes from 'prop-types';
 import styled, { css } from 'styled-components';
-import { COLORS, SPACE_UNIT } from '../constants';
-import { healthyAnimation, warningAnimation } from '../animations';
-
-export const GraphContainer = styled.div`
-  height: 400px;
-  width: 100%;
-  margin-bottom: ${SPACE_UNIT * 8}px;
-  position: relative;
-`;
+import { AVERAGE_SHAPE, COLORS, SPACE_UNIT } from '../constants';
 
 export const GraphOutline = styled.div`
   height: calc(100% - ${SPACE_UNIT * 8}px);
@@ -23,6 +17,7 @@ export const GraphHorizontalMark = styled.hr`
   color: ${COLORS.LIGHT_GRAY};
   background-color: ${props =>
     props.isThresholdLine ? 'rgba(255, 69, 69, 0.4)' : `${COLORS.LIGHT_GRAY}`};
+  transition: bottom 0.5s ease-out;
   position: absolute;
   ${props => props.top && `top: ${props.top}%;`}
   ${props => props.bottom && `bottom: ${props.bottom}%;`}
@@ -82,67 +77,52 @@ export const MaxMark = styled.div`
         `}
 `;
 
-export const BarContainer = styled.div`
-  height: calc(100% - ${SPACE_UNIT * 8}px + 1px);
-  width: 100%;
-  position: absolute;
-  overflow: hidden;
-`;
-
-export const Bar = styled.div.attrs(props => ({
-  style: {
-    height: `${props.heightValue}%`,
-    transform: `translateX(calc(200% * ${props.index}))`
-  }
-}))`
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  width: calc(100% / 120);
-  margin: 0 2px;
-  background-color: ${COLORS.WHITE};
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  transition: height 0.5s ease-out;
-`;
-
-export const Fill = styled.div`
-  height: 100%;
-  width: 70%;
-  background-color: ${props =>
-    props.isOverThreshold ? COLORS.RED : COLORS.GREEN};
-  border-top-right-radius: 2px;
-  border-top-left-radius: 2px;
-
-  ${props =>
-    props.isWaiting
-      ? css`
-          width: 25%;
-          min-height: 4px;
-          border-radius: 50%;
-          background-color: ${props =>
-            props.isHealthy ? COLORS.GREEN : COLORS.RED};
-          animation: ${props.isHealthy ? healthyAnimation : warningAnimation} 1s
-            infinite;
-        `
-      : ''}
-`;
-
-export const Alert = styled.div`
-  position: absolute;
-  font-size: 12px;
-  top: -${SPACE_UNIT * 3}px;
-  cursor: default;
-  color: ${props => (props.limitReached ? COLORS.RED : COLORS.GREEN)};
-
-  @media only screen and (min-width: 620px) {
-    top: -${SPACE_UNIT * 6}px;
-    font-size: 24px;
-  }
-`;
-
 export const MaxInput = styled.input`
   width: 36px;
 `;
+
+const TEN_MINUTES_IN_MS = 600000;
+
+function GraphLayout({ cpuAverages, latestAverage, max, setMax }) {
+  const endDate =
+    cpuAverages.length === 60
+      ? new Date(latestAverage.createdAt).toLocaleString()
+      : new Date(cpuAverages[0].createdAt + TEN_MINUTES_IN_MS).toLocaleString();
+  const xMinMark = new Date(cpuAverages[0].createdAt).toLocaleString();
+  const xMaxMark = latestAverage.createdAt ? endDate : '';
+
+  return (
+    <GraphOutline>
+      <GraphHorizontalMark top="25" />
+      <GraphHorizontalMark top="50" />
+      <GraphHorizontalMark top="75" />
+      <GraphHorizontalMark isThresholdLine bottom={parseInt((1 / max) * 100)} />
+
+      <GraphVerticalMark left="25" />
+      <GraphVerticalMark left="50" />
+      <GraphVerticalMark left="75" />
+
+      <MinMark axis="y">0</MinMark>
+      <MidMark>{max / 2}</MidMark>
+      <MaxMark axis="y">
+        <MaxInput
+          type="number"
+          value={max}
+          onChange={e => e.target.value > 1 && setMax(e.target.value)}
+        />
+      </MaxMark>
+
+      <MinMark axis="x">{xMinMark}</MinMark>
+      <MaxMark axis="x">{xMaxMark}</MaxMark>
+    </GraphOutline>
+  );
+}
+
+GraphLayout.propTypes = {
+  cpuAverages: PropTypes.arrayOf(AVERAGE_SHAPE),
+  latestAverage: AVERAGE_SHAPE,
+  max: PropTypes.number,
+  setMax: PropTypes.func
+};
+
+export default GraphLayout;

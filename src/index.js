@@ -1,11 +1,11 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import GlobalStyles from './globalStyles';
+import GlobalStyle from './components/GlobalStyle';
 import CpuMonitor from './components/CpuMonitor';
 
 ReactDOM.render(
   <React.StrictMode>
-    <GlobalStyles />
+    <GlobalStyle />
     <CpuMonitor />
   </React.StrictMode>,
   document.getElementById('root')

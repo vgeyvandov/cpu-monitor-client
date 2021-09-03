@@ -1,68 +1,96 @@
 import React, { useState } from 'react';
 import PropTypes from 'prop-types';
-import { AVERAGE_SHAPE } from '../constants';
-import { getBarTitle, isAboveThreshold } from '../dataUtils';
-import {
-  GraphContainer,
-  GraphOutline,
-  GraphHorizontalMark,
-  GraphVerticalMark,
-  MaxInput,
-  MinMark,
-  MidMark,
-  MaxMark,
-  BarContainer,
-  Bar,
-  Fill,
-  Alert
-} from './Graph.styled';
+import styled, { css } from 'styled-components';
+import { AVERAGE_SHAPE, COLORS, SPACE_UNIT } from '../constants';
+import { healthyAnimation, warningAnimation } from '../animations';
+import { getBarTitle, isAboveThreshold } from '../data-utils';
+import GraphLayout from './GraphLayout';
 
-const TEN_MINUTES_IN_MS = 600000;
+export const GraphContainer = styled.div`
+  height: 400px;
+  width: 100%;
+  margin-bottom: ${SPACE_UNIT * 8}px;
+  position: relative;
+`;
+
+export const BarContainer = styled.div`
+  height: calc(100% - ${SPACE_UNIT * 8}px + 1px);
+  width: 100%;
+  position: absolute;
+  overflow: hidden;
+`;
+
+export const Bar = styled.div.attrs(props => ({
+  style: {
+    height: `${props.heightValue}%`,
+    transform: `translateX(calc(200% * ${props.index}))`
+  }
+}))`
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: calc(100% / 120);
+  margin: 0 2px;
+  background-color: ${COLORS.WHITE};
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  transition: height 0.5s ease-out;
+`;
+
+export const Fill = styled.div`
+  height: 100%;
+  width: 70%;
+  background-color: ${props =>
+    props.isOverThreshold ? COLORS.RED : COLORS.GREEN};
+  border-top-right-radius: 2px;
+  border-top-left-radius: 2px;
+
+  ${props =>
+    props.isWaiting
+      ? css`
+          width: 25%;
+          min-height: 4px;
+          border-radius: 50%;
+          background-color: ${props =>
+            props.wasHealthy ? COLORS.GREEN : COLORS.RED};
+          animation: ${props.wasHealthy ? healthyAnimation : warningAnimation}
+            1s infinite;
+        `
+      : ''}
+`;
+
+export const Alert = styled.div`
+  position: absolute;
+  font-size: 12px;
+  top: -${SPACE_UNIT * 3}px;
+  cursor: default;
+  color: ${props => (props.warningAlert ? COLORS.RED : COLORS.GREEN)};
+
+  @media only screen and (min-width: 620px) {
+    top: -${SPACE_UNIT * 6}px;
+    font-size: 24px;
+  }
+`;
 
 function Graph({ cpuAverages, latestAverage }) {
   const [max, setMax] = useState(2);
 
-  const endDate =
-    cpuAverages.length === 60
-      ? new Date(latestAverage.createdAt).toLocaleString()
-      : new Date(cpuAverages[0].createdAt + TEN_MINUTES_IN_MS).toLocaleString();
-  const xMinMark = new Date(cpuAverages[0].createdAt).toLocaleString();
-  const xMaxMark = latestAverage.createdAt ? endDate : '';
-
   return (
     <GraphContainer>
-      <GraphOutline>
-        <GraphHorizontalMark top="25" />
-        <GraphHorizontalMark top="50" />
-        <GraphHorizontalMark top="75" />
-        <GraphHorizontalMark
-          isThresholdLine
-          bottom={parseInt((1 / max) * 100)}
-        />
-
-        <GraphVerticalMark left="25" />
-        <GraphVerticalMark left="50" />
-        <GraphVerticalMark left="75" />
-
-        <MinMark axis="y">0</MinMark>
-        <MidMark>{max / 2}</MidMark>
-        <MaxMark axis="y">
-          <MaxInput
-            type="number"
-            value={max}
-            onChange={e => e.target.value > 1 && setMax(e.target.value)}
-          />
-        </MaxMark>
-
-        <MinMark axis="x">{xMinMark}</MinMark>
-        <MaxMark axis="x">{xMaxMark}</MaxMark>
-      </GraphOutline>
+      <GraphLayout
+        cpuAverages={cpuAverages}
+        latestAverage={latestAverage}
+        max={max}
+        setMax={setMax}
+      />
 
       <BarContainer>
         {cpuAverages.map(
-          ({ id, value, createdAt, limitCleared, limitReached }, index) => {
+          ({ id, value, createdAt, recoveryAlert, warningAlert }, index) => {
             const isWaiting = value === 0;
-            const showAlert = !isWaiting && (limitCleared || limitReached);
+            const showAlert = !isWaiting && (recoveryAlert || warningAlert);
             return (
               <Bar
                 key={id}
@@ -71,21 +99,19 @@ function Graph({ cpuAverages, latestAverage }) {
                 title={isWaiting ? '' : getBarTitle(value, createdAt)}
               >
                 <Fill
-                  isHealthy={!isAboveThreshold(latestAverage.value)}
                   isOverThreshold={isAboveThreshold(value)}
                   isWaiting={isWaiting}
+                  wasHealthy={!isAboveThreshold(latestAverage.value)}
                 />
                 {showAlert && (
                   <Alert
-                    limitCleared={limitCleared}
-                    limitReached={limitReached}
-                    title={
-                      limitReached
-                        ? 'High average load exceeded for 2+ minutes'
-                        : 'High average load reduced for 2+ minutes'
-                    }
+                    recoveryAlert={recoveryAlert}
+                    warningAlert={warningAlert}
+                    title={`High average load ${
+                      warningAlert ? 'exceeded' : 'reduced'
+                    } for 2+ minutes`}
                   >
-                    {limitReached ? '↑' : '↓'}
+                    {warningAlert ? '↑' : '↓'}
                   </Alert>
                 )}
               </Bar>

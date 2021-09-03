@@ -74,9 +74,9 @@ const ListItem = styled.li`
   border-bottom: ${props => (props.noEntries ? '0' : '1px')} solid
     ${COLORS.LIGHT_GRAY};
   font-size: 12px;
-  color: ${props => (props.limitReached ? COLORS.RED : COLORS.BLACK)};
+  color: ${props => (props.warningAlert ? COLORS.RED : COLORS.BLACK)};
   animation: ${props =>
-    props.isLatest && props.limitReached
+    props.isLatest && props.warningAlert
       ? css`
           ${logAlertAnimation} 3s infinite
         `
@@ -97,7 +97,7 @@ const EntryData = styled.div`
   font-size: ${props => (props.isTrend ? '28px' : '16px')};
   ${props =>
     props.isTrend &&
-    `color: ${props.limitReached ? COLORS.RED : COLORS.GREEN}`};
+    `color: ${props.warningAlert ? COLORS.RED : COLORS.GREEN}`};
 `;
 
 function Log({ latestAverage }) {
@@ -105,7 +105,7 @@ function Log({ latestAverage }) {
   const [isExpandedLog, setIsExpandedLog] = useState(false);
 
   useEffect(() => {
-    const didAlert = latestAverage.limitReached || latestAverage.limitCleared;
+    const didAlert = latestAverage.warningAlert || latestAverage.recoveryAlert;
 
     if (didAlert) {
       setLogEntries(logEntries =>
@@ -118,17 +118,17 @@ function Log({ latestAverage }) {
     <LogContainer isExpanded={isExpandedLog}>
       <LogTitle>CPU load alert log</LogTitle>
       <List>
-        {logEntries.map(({ id, createdAt, limitReached, value }, index) => (
-          <ListItem isLatest={index === 0} key={id} limitReached={limitReached}>
+        {logEntries.map(({ id, createdAt, warningAlert, value }, index) => (
+          <ListItem isLatest={index === 0} key={id} warningAlert={warningAlert}>
             <EntryData>{new Date(createdAt).toLocaleString()}</EntryData>
             <EntryData>{value}</EntryData>
-            <EntryData isTrend limitReached={limitReached}>
-              {limitReached ? '↑' : '↓'}
+            <EntryData isTrend warningAlert={warningAlert}>
+              {warningAlert ? '↑' : '↓'}
             </EntryData>
           </ListItem>
         ))}
         {logEntries.length === 0 && (
-          <ListItem noEntries>{'No entries.'}</ListItem>
+          <ListItem noEntries>{'No alerts here.'}</ListItem>
         )}
       </List>
       <ExpandToggle

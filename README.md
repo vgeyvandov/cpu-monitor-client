@@ -1,4 +1,4 @@
-The CPU monitor client is a React app that queries the CPU monitor server and visualizes the data over time. In the `cpu-monitor-client` directory, run `npm install && npm start` to set up and start the client. 
+The CPU monitor client is a React app that queries the [CPU monitor server](https://github.com/vgeyvandov/cpu-monitor-server) and visualizes the data over time. In the `cpu-monitor-client` directory, run `npm install && npm start` to set up and start the client. 
 
 The client will run on `http://localhost:3000`.
 
